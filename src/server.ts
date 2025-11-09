@@ -12,6 +12,7 @@ import { ObsController } from './controllers/ObsController.js';
 import { SocketManager } from './controllers/SocketManager.js';
 import { StateManager } from './state/StateManager.js';
 import { SpindlesMonitor } from './monitors/SpindlesMonitor.js';
+import { GitMonitor } from './monitors/GitMonitor.js';
 
 class ForgeStudioServer {
   private app: express.Application;
@@ -20,6 +21,7 @@ class ForgeStudioServer {
   private socketManager: SocketManager;
   private stateManager: StateManager;
   private spindlesMonitor: SpindlesMonitor;
+  private gitMonitor: GitMonitor;
 
   constructor() {
     this.app = express();
@@ -28,12 +30,14 @@ class ForgeStudioServer {
     this.obsController = new ObsController();
     this.socketManager = new SocketManager(this.httpServer);
     this.spindlesMonitor = new SpindlesMonitor();
+    this.gitMonitor = new GitMonitor();
 
     this.setupMiddleware();
     this.setupRoutes();
     this.setupObsEvents();
     this.setupStateSync();
     this.setupSpindlesEvents();
+    this.setupGitEvents();
   }
 
   /**
@@ -291,6 +295,19 @@ class ForgeStudioServer {
   }
 
   /**
+   * Setup git event handlers
+   */
+  private setupGitEvents(): void {
+    // When git commit detected, broadcast to overlays
+    this.gitMonitor.on('commit', (commitEvent) => {
+      logger.info(`Git commit detected: ${commitEvent.message}`);
+      this.socketManager.broadcastGitCommit(commitEvent);
+    });
+
+    logger.info('Git monitor configured');
+  }
+
+  /**
    * Start the server
    */
   async start(): Promise<void> {
@@ -304,6 +321,9 @@ class ForgeStudioServer {
         logger.warn(`Could not connect to OBS: ${error}`);
         logger.warn('Server will start without OBS connection. OBS will auto-reconnect when available.');
       }
+
+      // Start GitMonitor
+      await this.gitMonitor.start();
 
       // Start HTTP server
       this.httpServer.listen(config.server.port, () => {
@@ -330,6 +350,7 @@ class ForgeStudioServer {
     logger.info('Shutting down Forge Studio Control Room...');
 
     try {
+      await this.gitMonitor.stop();
       await this.obsController.disconnect();
       this.httpServer.close(() => {
         logger.info('Server shut down successfully');
@@ -352,3 +373,4 @@ process.on('SIGINT', () => server.shutdown());
 // Start server
 server.start();
 // Test comment for git commit overlay demo
+// GitMonitor is now live - watching for commits!

@@ -149,10 +149,19 @@
         let hideTimeout = null;
 
         socket.on('connect', () => {
-            console.log('Git status overlay connected');
+            console.log('Git status overlay connected, Socket ID:', socket.id);
+
+            // Visual indicator that Socket.io is connected
+            document.title = 'Git Status - Connected';
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Git status overlay DISCONNECTED');
+            document.title = 'Git Status - Disconnected';
         });
 
         socket.on('git_commit', (data) => {
+            console.log('RECEIVED git_commit event:', data);
             showGitCommit(data);
         });
 
