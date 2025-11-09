@@ -351,3 +351,4 @@ process.on('SIGINT', () => server.shutdown());
 
 // Start server
 server.start();
+// Test comment for git commit overlay demo
