@@ -102,94 +102,87 @@ graph TB
 graph TB
     ROOT[forge-studio/]
 
-    SRC[src/]
-    PUBLIC[public/]
-    CONFIG[config/]
-    DOCS[docs/]
-
-    ROOT --> SRC
-    ROOT --> PUBLIC
-    ROOT --> CONFIG
-    ROOT --> DOCS
+    ROOT --> SRC[src/]
+    ROOT --> PUBLIC[public/]
+    ROOT --> CONFIG[config/]
+    ROOT --> DOCS[docs/]
     ROOT --> PACKAGE[package.json]
     ROOT --> TSCONFIG[tsconfig.json]
     ROOT --> ENV[.env]
     ROOT --> README[README.md]
 
-    subgraph "Source Code"
-        SRC --> SERVER[server.ts]
-        SRC --> CONTROLLERS[controllers/]
-        SRC --> MONITORS[monitors/]
-        SRC --> CINEMA[cinematography/]
-        SRC --> AIMON[ai-monitors/]
-        SRC --> MANDRELINT[mandrel-integration/]
-        SRC --> AUDIO[audio/]
-        SRC --> CONFIGDIR[config/]
-        SRC --> TYPES[types/]
+    SRC --> SERVER[server.ts]
+    SRC --> CONTROLLERS[controllers/]
+    SRC --> MONITORS[monitors/]
+    SRC --> CINEMA[cinematography/]
+    SRC --> AIMON[ai-monitors/]
+    SRC --> MANDRELINT[mandrel-integration/]
+    SRC --> AUDIO[audio/]
+    SRC --> CONFIGDIR[config/]
+    SRC --> TYPES[types/]
 
-        CONTROLLERS --> OBSCTRL[ObsController.ts]
-        CONTROLLERS --> SOCKET[SocketManager.ts]
+    CONTROLLERS --> OBSCTRL[ObsController.ts]
+    CONTROLLERS --> SOCKET[SocketManager.ts]
 
-        MONITORS --> TERMINAL[TerminalMonitor.ts]
-        MONITORS --> GIT[GitMonitor.ts]
-        MONITORS --> NVIM[NeovimMonitor.ts]
-        MONITORS --> SPINDLES[SpindlesMonitor.ts]
-        MONITORS --> ERROR[ErrorDetector.ts]
+    MONITORS --> TERMMON[TerminalMonitor.ts]
+    MONITORS --> GITMON[GitMonitor.ts]
+    MONITORS --> NVIMMON[NeovimMonitor.ts]
+    MONITORS --> SPINDLEMON[SpindlesMonitor.ts]
+    MONITORS --> ERROR[ErrorDetector.ts]
 
-        CINEMA --> DIRECTOR[SceneDirector.ts]
-        CINEMA --> ZOOM[ZoomController.ts]
-        CINEMA --> TRANS[TransitionManager.ts]
+    CINEMA --> DIRECTOR[SceneDirector.ts]
+    CINEMA --> ZOOM[ZoomController.ts]
+    CINEMA --> TRANS[TransitionManager.ts]
 
-        AIMON --> CLAUDE[ClaudeInterceptor.ts]
-        AIMON --> THINK[ThinkingExtractor.ts]
-        AIMON --> LOCAL[LocalLlmClient.ts]
+    AIMON --> CLAUDE[ClaudeInterceptor.ts]
+    AIMON --> THINKEXT[ThinkingExtractor.ts]
+    AIMON --> LOCAL[LocalLlmClient.ts]
 
-        MANDRELINT --> DBMON[DbMonitor.ts]
-        MANDRELINT --> CTXTRACK[ContextTracker.ts]
+    MANDRELINT --> DBMON[DbMonitor.ts]
+    MANDRELINT --> CTXTRACK[ContextTracker.ts]
 
-        AUDIO --> AUDIOMGR[AudioManager.ts]
+    AUDIO --> AUDIOMGR[AudioManager.ts]
 
-        CONFIGDIR --> CFGTS[config.ts]
+    CONFIGDIR --> CFGTS[config.ts]
 
-        TYPES --> EVENTS[events.ts]
-    end
+    TYPES --> EVENTS[events.ts]
 
-    subgraph "Public Assets"
-        PUBLIC --> DASH[dashboard/]
-        PUBLIC --> OVERLAYS[overlays/]
-        PUBLIC --> SOUNDS[sounds/]
+    PUBLIC --> DASH[dashboard/]
+    PUBLIC --> OVERLAYS[overlays/]
+    PUBLIC --> SOUNDS[sounds/]
 
-        DASH --> DASHHTML[index.html]
-        DASH --> DASHCSS[style.css]
-        DASH --> DASHJS[script.js]
+    DASH --> DASHHTML[index.html]
+    DASH --> DASHCSS[style.css]
+    DASH --> DASHJS[script.js]
 
-        OVERLAYS --> THINKOVER[thinking-blocks/]
-        OVERLAYS --> TOOLOVER[tool-calls/]
-        OVERLAYS --> FILEOVER[current-file/]
-        OVERLAYS --> GITOVER[git-status/]
-        OVERLAYS --> CTXOVER[context-save/]
-        OVERLAYS --> CONVOVER[conversation-summary/]
-        OVERLAYS --> ERROVER[error-explanation/]
+    OVERLAYS --> THINKOVER[thinking-blocks/]
+    OVERLAYS --> TOOLOVER[tool-calls/]
+    OVERLAYS --> FILEOVER[current-file/]
+    OVERLAYS --> GITOVER[git-status/]
+    OVERLAYS --> CTXOVER[context-save/]
+    OVERLAYS --> CONVOVER[conversation-summary/]
+    OVERLAYS --> ERROVER[error-explanation/]
 
-        SOUNDS --> WAV1[thinking-start.wav]
-        SOUNDS --> WAV2[tool-call.wav]
-        SOUNDS --> WAV3[error.wav]
-        SOUNDS --> WAV4[commit.wav]
-        SOUNDS --> WAV5[context-save.wav]
-    end
+    SOUNDS --> WAV1[thinking-start.wav]
+    SOUNDS --> WAV2[tool-call.wav]
+    SOUNDS --> WAV3[error.wav]
+    SOUNDS --> WAV4[commit.wav]
+    SOUNDS --> WAV5[context-save.wav]
 
-    subgraph "Configuration"
-        CONFIG --> DEFAULT[default.json]
-        CONFIG --> PROD[production.json]
-        CONFIG --> DEV[development.json]
-    end
+    CONFIG --> DEFAULT[default.json]
+    CONFIG --> PROD[production.json]
+    CONFIG --> DEV[development.json]
 
-    subgraph "Documentation"
-        DOCS --> MASTER[FORGE-STUDIO-MASTER-PLAN.md]
-        DOCS --> ARCH[FSCR-ARCHITECTURE.md]
-        DOCS --> WISH[FORGE-STUDIO-WISH-LIST.md]
-        DOCS --> QUICK[WEEK-1-QUICK-START.md]
-    end
+    DOCS --> MASTER[FORGE-STUDIO-MASTER-PLAN.md]
+    DOCS --> ARCH[FSCR-ARCHITECTURE.md]
+    DOCS --> WISH[FORGE-STUDIO-WISH-LIST.md]
+    DOCS --> QUICK[WEEK-1-QUICK-START.md]
+
+    style ROOT fill:#2a3a4a
+    style SRC fill:#3a4a5a
+    style PUBLIC fill:#3a4a5a
+    style CONFIG fill:#3a4a5a
+    style DOCS fill:#3a4a5a
 ```
 
 ## Phase 1: Foundation & Control Server (Current)
