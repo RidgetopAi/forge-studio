@@ -98,91 +98,69 @@ graph TB
 
 ## File Structure
 
-```mermaid
-graph TB
-    ROOT[forge-studio/]
-
-    ROOT --> SRC[src/]
-    ROOT --> PUBLIC[public/]
-    ROOT --> CONFIG[config/]
-    ROOT --> DOCS[docs/]
-    ROOT --> PACKAGE[package.json]
-    ROOT --> TSCONFIG[tsconfig.json]
-    ROOT --> ENV[.env]
-    ROOT --> README[README.md]
-
-    SRC --> SERVER[server.ts]
-    SRC --> CONTROLLERS[controllers/]
-    SRC --> MONITORS[monitors/]
-    SRC --> CINEMA[cinematography/]
-    SRC --> AIMON[ai-monitors/]
-    SRC --> MANDRELINT[mandrel-integration/]
-    SRC --> AUDIO[audio/]
-    SRC --> CONFIGDIR[config/]
-    SRC --> TYPES[types/]
-
-    CONTROLLERS --> OBSCTRL[ObsController.ts]
-    CONTROLLERS --> SOCKET[SocketManager.ts]
-
-    MONITORS --> TERMMON[TerminalMonitor.ts]
-    MONITORS --> GITMON[GitMonitor.ts]
-    MONITORS --> NVIMMON[NeovimMonitor.ts]
-    MONITORS --> SPINDLEMON[SpindlesMonitor.ts]
-    MONITORS --> ERROR[ErrorDetector.ts]
-
-    CINEMA --> DIRECTOR[SceneDirector.ts]
-    CINEMA --> ZOOM[ZoomController.ts]
-    CINEMA --> TRANS[TransitionManager.ts]
-
-    AIMON --> CLAUDE[ClaudeInterceptor.ts]
-    AIMON --> THINKEXT[ThinkingExtractor.ts]
-    AIMON --> LOCAL[LocalLlmClient.ts]
-
-    MANDRELINT --> DBMON[DbMonitor.ts]
-    MANDRELINT --> CTXTRACK[ContextTracker.ts]
-
-    AUDIO --> AUDIOMGR[AudioManager.ts]
-
-    CONFIGDIR --> CFGTS[config.ts]
-
-    TYPES --> EVENTS[events.ts]
-
-    PUBLIC --> DASH[dashboard/]
-    PUBLIC --> OVERLAYS[overlays/]
-    PUBLIC --> SOUNDS[sounds/]
-
-    DASH --> DASHHTML[index.html]
-    DASH --> DASHCSS[style.css]
-    DASH --> DASHJS[script.js]
-
-    OVERLAYS --> THINKOVER[thinking-blocks/]
-    OVERLAYS --> TOOLOVER[tool-calls/]
-    OVERLAYS --> FILEOVER[current-file/]
-    OVERLAYS --> GITOVER[git-status/]
-    OVERLAYS --> CTXOVER[context-save/]
-    OVERLAYS --> CONVOVER[conversation-summary/]
-    OVERLAYS --> ERROVER[error-explanation/]
-
-    SOUNDS --> WAV1[thinking-start.wav]
-    SOUNDS --> WAV2[tool-call.wav]
-    SOUNDS --> WAV3[error.wav]
-    SOUNDS --> WAV4[commit.wav]
-    SOUNDS --> WAV5[context-save.wav]
-
-    CONFIG --> DEFAULT[default.json]
-    CONFIG --> PROD[production.json]
-    CONFIG --> DEV[development.json]
-
-    DOCS --> MASTER[FORGE-STUDIO-MASTER-PLAN.md]
-    DOCS --> ARCH[FSCR-ARCHITECTURE.md]
-    DOCS --> WISH[FORGE-STUDIO-WISH-LIST.md]
-    DOCS --> QUICK[WEEK-1-QUICK-START.md]
-
-    style ROOT fill:#2a3a4a
-    style SRC fill:#3a4a5a
-    style PUBLIC fill:#3a4a5a
-    style CONFIG fill:#3a4a5a
-    style DOCS fill:#3a4a5a
+```
+forge-studio/
+├── src/
+│   ├── server.ts                      # Main Express + Socket.io server
+│   ├── controllers/
+│   │   ├── ObsController.ts           # OBS websocket automation
+│   │   └── SocketManager.ts           # Overlay communication hub
+│   ├── monitors/
+│   │   ├── TerminalMonitor.ts         # Terminal output monitoring
+│   │   ├── GitMonitor.ts              # Git activity tracking
+│   │   ├── NeovimMonitor.ts           # Neovim RPC integration
+│   │   ├── SpindlesMonitor.ts         # Thinking blocks from proxy
+│   │   └── ErrorDetector.ts           # Error pattern detection
+│   ├── cinematography/
+│   │   ├── SceneDirector.ts           # Automated scene switching
+│   │   ├── ZoomController.ts          # Smart zoom control
+│   │   └── TransitionManager.ts       # Smooth transitions
+│   ├── ai-monitors/
+│   │   ├── ClaudeInterceptor.ts       # Claude API monitoring
+│   │   ├── ThinkingExtractor.ts       # Extract thinking blocks
+│   │   └── LocalLlmClient.ts          # Ollama integration
+│   ├── mandrel-integration/
+│   │   ├── DbMonitor.ts               # Mandrel DB event tracking
+│   │   └── ContextTracker.ts          # Context save/retrieval
+│   ├── audio/
+│   │   └── AudioManager.ts            # Audio cue system
+│   ├── config/
+│   │   └── config.ts                  # Configuration management
+│   └── types/
+│       └── events.ts                  # TypeScript event types
+├── public/
+│   ├── dashboard/                     # Control dashboard UI
+│   │   ├── index.html
+│   │   ├── style.css
+│   │   └── script.js
+│   ├── overlays/                      # OBS browser sources
+│   │   ├── thinking-blocks/
+│   │   ├── tool-calls/
+│   │   ├── current-file/
+│   │   ├── git-status/
+│   │   ├── context-save/
+│   │   ├── conversation-summary/
+│   │   └── error-explanation/
+│   └── sounds/                        # Audio cue files
+│       ├── thinking-start.wav
+│       ├── tool-call.wav
+│       ├── error.wav
+│       ├── commit.wav
+│       └── context-save.wav
+├── config/
+│   ├── default.json                   # Default configuration
+│   ├── production.json                # Production settings
+│   └── development.json               # Development settings
+├── docs/
+│   ├── FORGE-STUDIO-MASTER-PLAN.md
+│   ├── FSCR-ARCHITECTURE.md
+│   ├── FORGE-STUDIO-WISH-LIST.md
+│   └── WEEK-1-QUICK-START.md
+├── package.json
+├── tsconfig.json
+├── .env
+├── .gitignore
+└── README.md
 ```
 
 ## Phase 1: Foundation & Control Server (Current)
