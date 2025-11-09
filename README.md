@@ -10,6 +10,7 @@ Forge Studio Control Room is the orchestration hub that coordinates:
 - Development activity monitoring (terminal, Neovim, git)
 - AI reasoning extraction (Claude API, local LLM)
 - Mandrel context integration
+- Automatic git commit detection and visualization
 
 ## Quick Start
 
