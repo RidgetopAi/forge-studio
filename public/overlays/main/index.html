@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Main Overlay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            background: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 200, 100, 0.9);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .status-indicator.connected {
+            background: rgba(0, 200, 100, 0.9);
+        }
+
+        .status-indicator.disconnected {
+            background: rgba(200, 0, 0, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="status-indicator connected" id="status">
+        🟢 Forge Studio Connected
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io('http://localhost:8000');
+        const statusEl = document.getElementById('status');
+
+        socket.on('connect', () => {
+            console.log('Connected to Forge Studio');
+            statusEl.textContent = '🟢 Forge Studio Connected';
+            statusEl.className = 'status-indicator connected';
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from Forge Studio');
+            statusEl.textContent = '🔴 Forge Studio Disconnected';
+            statusEl.className = 'status-indicator disconnected';
+        });
+
+        socket.on('state_update', (data) => {
+            console.log('State update:', data);
+        });
+    </script>
+</body>
+</html>

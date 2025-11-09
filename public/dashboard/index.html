@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forge Studio Control Room - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Forge Studio Control Room</h1>
+            <div class="status-indicator">
+                <div class="status-item">
+                    <span class="label">OBS:</span>
+                    <span id="obs-status" class="status disconnected">Disconnected</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Socket:</span>
+                    <span id="socket-status" class="status disconnected">Disconnected</span>
+                </div>
+                <div class="status-item">
+                    <span class="label">Clients:</span>
+                    <span id="client-count">0</span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Current Scene Section -->
+            <section class="card">
+                <h2>Current Scene</h2>
+                <div id="current-scene" class="scene-display">
+                    <span class="scene-name">-</span>
+                </div>
+            </section>
+
+            <!-- Scene Control Section -->
+            <section class="card">
+                <h2>Scene Control</h2>
+                <div id="scene-list" class="scene-list">
+                    <p class="loading">Loading scenes...</p>
+                </div>
+            </section>
+
+            <!-- Event Log Section -->
+            <section class="card">
+                <h2>Event Log</h2>
+                <div id="event-log" class="event-log">
+                    <div class="log-entry">
+                        <span class="timestamp">Waiting for events...</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

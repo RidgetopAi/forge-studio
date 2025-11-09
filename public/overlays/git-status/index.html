@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Status Overlay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            background: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .git-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 20, 30, 0.95);
+            border-left: 4px solid #28a745;
+            padding: 20px;
+            border-radius: 8px;
+            min-width: 500px;
+            max-width: 700px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .git-container.visible {
+            opacity: 1;
+        }
+
+        .git-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .git-icon {
+            font-size: 24px;
+        }
+
+        .git-title {
+            color: #28a745;
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .commit-message {
+            color: #ffffff;
+            font-size: 16px;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .files-list {
+            margin-top: 10px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            color: #e0e0e0;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-path {
+            font-family: 'Courier New', monospace;
+            color: #00d4ff;
+        }
+
+        .file-stats {
+            display: flex;
+            gap: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+
+        .additions {
+            color: #28a745;
+        }
+
+        .deletions {
+            color: #dc3545;
+        }
+
+        .timestamp {
+            text-align: right;
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            color: #888;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translate(-50%, -60%);
+                opacity: 0;
+            }
+            to {
+                transform: translate(-50%, -50%);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="git-container" id="git-container">
+        <div class="git-header">
+            <span class="git-icon">🔀</span>
+            <span class="git-title">Git Commit</span>
+        </div>
+        <div class="commit-message" id="commit-message"></div>
+        <div class="files-list" id="files-list"></div>
+        <div class="timestamp" id="timestamp"></div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io('http://localhost:8000');
+        const container = document.getElementById('git-container');
+        const messageEl = document.getElementById('commit-message');
+        const filesEl = document.getElementById('files-list');
+        const timestampEl = document.getElementById('timestamp');
+
+        let hideTimeout = null;
+
+        socket.on('connect', () => {
+            console.log('Git status overlay connected');
+        });
+
+        socket.on('git_commit', (data) => {
+            showGitCommit(data);
+        });
+
+        function showGitCommit(data) {
+            // Clear any existing timeout
+            if (hideTimeout) {
+                clearTimeout(hideTimeout);
+            }
+
+            // Update content
+            messageEl.textContent = data.message || 'No commit message';
+
+            // Update files list
+            filesEl.innerHTML = '';
+            if (data.files && data.files.length > 0) {
+                data.files.forEach(file => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'file-item';
+
+                    const additions = file.additions || 0;
+                    const deletions = file.deletions || 0;
+
+                    fileItem.innerHTML = `
+                        <span class="file-path">${escapeHtml(file.path)}</span>
+                        <span class="file-stats">
+                            <span class="additions">+${additions}</span>
+                            <span class="deletions">-${deletions}</span>
+                        </span>
+                    `;
+                    filesEl.appendChild(fileItem);
+                });
+            }
+
+            // Update timestamp
+            const time = new Date(data.timestamp || Date.now()).toLocaleTimeString();
+            timestampEl.textContent = `Committed at ${time}`;
+
+            // Show the overlay
+            container.classList.add('visible');
+
+            // Auto-hide after 5 seconds
+            hideTimeout = setTimeout(() => {
+                container.classList.remove('visible');
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Test: Show sample commit on connect (for testing)
+        socket.on('connect', () => {
+            setTimeout(() => {
+                showGitCommit({
+                    message: 'Test commit: Git status overlay working!',
+                    files: [
+                        { path: 'src/server.ts', additions: 15, deletions: 3 },
+                        { path: 'public/overlays/git-status/index.html', additions: 200, deletions: 0 }
+                    ],
+                    timestamp: new Date().toISOString()
+                });
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

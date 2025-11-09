@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Socket.io Client Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            background: #0f0f0f;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .connected {
+            background: #1a472a;
+            color: #4ade80;
+        }
+        .disconnected {
+            background: #4a1a1a;
+            color: #f87171;
+        }
+        #log {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .log-entry {
+            padding: 5px;
+            margin: 3px 0;
+            border-left: 3px solid #444;
+            padding-left: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            background: #2a2a2a;
+            color: #e0e0e0;
+            border: 1px solid #444;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #333;
+        }
+    </style>
+</head>
+<body>
+    <h1>Socket.io Client Test</h1>
+
+    <div id="status" class="status disconnected">
+        Status: Disconnected
+    </div>
+
+    <div>
+        <button onclick="testPing()">Send Ping</button>
+        <button onclick="testIdentify()">Send Identify</button>
+        <button onclick="disconnect()">Disconnect</button>
+        <button onclick="reconnect()">Reconnect</button>
+    </div>
+
+    <div id="log"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        let socket;
+        const logEl = document.getElementById('log');
+        const statusEl = document.getElementById('status');
+
+        function addLog(message, type = '') {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.insertBefore(entry, logEl.firstChild);
+        }
+
+        function updateStatus(connected) {
+            if (connected) {
+                statusEl.className = 'status connected';
+                statusEl.textContent = 'Status: Connected';
+            } else {
+                statusEl.className = 'status disconnected';
+                statusEl.textContent = 'Status: Disconnected';
+            }
+        }
+
+        function connect() {
+            socket = io();
+
+            socket.on('connect', () => {
+                addLog('✅ Connected to server');
+                updateStatus(true);
+            });
+
+            socket.on('disconnect', () => {
+                addLog('❌ Disconnected from server');
+                updateStatus(false);
+            });
+
+            socket.on('pong', (data) => {
+                addLog(`🏓 Pong received: ${JSON.stringify(data)}`);
+            });
+
+            socket.on('obs_connection', (data) => {
+                addLog(`🎥 OBS connection: ${JSON.stringify(data)}`);
+            });
+
+            socket.on('scene_switch', (data) => {
+                addLog(`🎬 Scene switch: ${JSON.stringify(data)}`);
+            });
+
+            socket.on('status_update', (data) => {
+                addLog(`📊 Status update: ${JSON.stringify(data)}`);
+            });
+        }
+
+        function testPing() {
+            if (socket && socket.connected) {
+                socket.emit('ping');
+                addLog('⚡ Sent ping to server');
+            } else {
+                addLog('❌ Not connected');
+            }
+        }
+
+        function testIdentify() {
+            if (socket && socket.connected) {
+                socket.emit('identify', { type: 'test-client', name: 'Socket Test' });
+                addLog('📝 Sent identify to server');
+            } else {
+                addLog('❌ Not connected');
+            }
+        }
+
+        function disconnect() {
+            if (socket) {
+                socket.disconnect();
+                addLog('🔌 Manually disconnected');
+            }
+        }
+
+        function reconnect() {
+            if (socket && !socket.connected) {
+                socket.connect();
+                addLog('🔌 Attempting to reconnect...');
+            } else if (!socket) {
+                connect();
+            } else {
+                addLog('⚠️ Already connected');
+            }
+        }
+
+        // Auto-connect on load
+        connect();
+    </script>
+</body>
+</html>
