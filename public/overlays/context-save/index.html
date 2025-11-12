@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Context Save Notification</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            background: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-container {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .notification-container.show {
+            display: block;
+            opacity: 1;
+        }
+
+        .notification-container.fade-out {
+            opacity: 0;
+        }
+
+        .notification-card {
+            background: linear-gradient(135deg, rgba(20, 20, 30, 0.98), rgba(30, 30, 40, 0.98));
+            border: 2px solid #00ff88;
+            border-radius: 12px;
+            padding: 30px 40px;
+            box-shadow: 0 8px 32px rgba(0, 255, 136, 0.3), 0 0 60px rgba(0, 255, 136, 0.2);
+            min-width: 600px;
+            max-width: 800px;
+            animation: slideIn 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: scale(0.8) translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .notification-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .notification-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .notification-title {
+            flex: 1;
+        }
+
+        .notification-title h2 {
+            color: #00ff88;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .notification-type {
+            color: #b0b0b0;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .notification-body {
+            margin-bottom: 20px;
+        }
+
+        .notification-preview {
+            color: #ffffff;
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+            border-left: 3px solid #00d4ff;
+        }
+
+        .notification-meta {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #b0b0b0;
+            font-size: 13px;
+        }
+
+        .meta-label {
+            color: #888;
+            text-transform: uppercase;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(0, 212, 255, 0.2);
+            border: 1px solid rgba(0, 212, 255, 0.4);
+            border-radius: 4px;
+            color: #00d4ff;
+            font-size: 12px;
+            font-weight: bold;
+            margin-right: 6px;
+        }
+
+        .timestamp {
+            color: #ffa500;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+
+        /* Type-specific colors */
+        .notification-card.code { border-color: #00d4ff; }
+        .notification-card.decision { border-color: #ffa500; }
+        .notification-card.completion { border-color: #00ff88; }
+        .notification-card.milestone { border-color: #ff00ff; }
+        .notification-card.error { border-color: #ff4444; }
+        .notification-card.planning { border-color: #9b59b6; }
+    </style>
+</head>
+<body>
+    <div class="notification-container" id="notification-container">
+        <div class="notification-card" id="notification-card">
+            <div class="notification-header">
+                <div class="notification-icon">💾</div>
+                <div class="notification-title">
+                    <h2>Context Saved</h2>
+                    <div class="notification-type" id="context-type">code</div>
+                </div>
+            </div>
+            <div class="notification-body">
+                <div class="notification-preview" id="preview-text">
+                    Context content preview will appear here...
+                </div>
+                <div class="notification-meta">
+                    <div class="meta-item">
+                        <span class="meta-label">Tags:</span>
+                        <div id="tags-container"></div>
+                    </div>
+                    <div class="meta-item">
+                        <span class="meta-label">Time:</span>
+                        <span class="timestamp" id="timestamp">00:00:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io(); // Connect to the server that served this page
+        const container = document.getElementById('notification-container');
+        const card = document.getElementById('notification-card');
+        const contextType = document.getElementById('context-type');
+        const previewText = document.getElementById('preview-text');
+        const tagsContainer = document.getElementById('tags-container');
+        const timestampEl = document.getElementById('timestamp');
+
+        const displayDuration = 4000; // 4 seconds visible
+        const fadeOutDuration = 500;  // 0.5 second fade
+
+        let currentTimeout = null;
+        let fadeTimeout = null;
+
+        socket.on('connect', () => {
+            console.log('Context save overlay connected');
+            socket.emit('identify', {
+                type: 'context-save-overlay',
+                name: 'Context Save Overlay'
+            });
+        });
+
+        socket.on('mandrel_context_saved', (data) => {
+            console.log('Context save notification received:', data);
+            showNotification(data);
+        });
+
+        function showNotification(data) {
+            // Clear any existing timeouts
+            if (currentTimeout) clearTimeout(currentTimeout);
+            if (fadeTimeout) clearTimeout(fadeTimeout);
+
+            // Update content
+            contextType.textContent = data.contextType || 'unknown';
+            previewText.textContent = data.contentPreview || 'No preview available';
+
+            // Update tags
+            tagsContainer.innerHTML = '';
+            if (data.tags && data.tags.length > 0) {
+                data.tags.forEach(tag => {
+                    const tagEl = document.createElement('span');
+                    tagEl.className = 'tag';
+                    tagEl.textContent = tag;
+                    tagsContainer.appendChild(tagEl);
+                });
+            } else {
+                tagsContainer.textContent = 'none';
+            }
+
+            // Update timestamp
+            const time = new Date(data.timestamp || Date.now()).toLocaleTimeString();
+            timestampEl.textContent = time;
+
+            // Update card styling based on type
+            card.className = 'notification-card ' + (data.contextType || 'code');
+
+            // Show notification
+            container.classList.remove('fade-out');
+            container.classList.add('show');
+
+            // Schedule fade-out
+            currentTimeout = setTimeout(() => {
+                container.classList.add('fade-out');
+
+                // Remove after fade completes
+                fadeTimeout = setTimeout(() => {
+                    container.classList.remove('show');
+                }, fadeOutDuration);
+            }, displayDuration);
+        }
+
+        // Test notification on connect
+        socket.on('connect', () => {
+            setTimeout(() => {
+                showNotification({
+                    contextType: 'code',
+                    contentPreview: 'Fixed Neovim reconnection bug by adding persistent socket error handlers.',
+                    tags: ['neovim', 'stability', 'phase-2'],
+                    timestamp: new Date().toISOString()
+                });
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

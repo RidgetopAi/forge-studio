@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Current File Overlay</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 1920px;
+      height: 1080px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    #file-display {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 2px solid rgba(59, 130, 246, 0.5);
+      border-radius: 12px;
+      padding: 16px 24px;
+      min-width: 300px;
+      max-width: 500px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      transform: translateX(50px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    #file-display.visible {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .file-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .language-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2));
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: #60a5fa;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .file-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .filename {
+      color: #f1f5f9;
+      font-size: 18px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .filepath {
+      color: #94a3b8;
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-family: 'Courier New', monospace;
+    }
+
+    .file-stats {
+      display: flex;
+      gap: 20px;
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+
+    .stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .stat-label {
+      color: #64748b;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .stat-value {
+      color: #60a5fa;
+      font-weight: 600;
+    }
+
+    .cursor-position {
+      background: rgba(59, 130, 246, 0.1);
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+    }
+
+    .typing-indicator {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 8px;
+      height: 8px;
+      background: #22c55e;
+      border-radius: 50%;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+    }
+
+    .typing-indicator.active {
+      opacity: 1;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+      }
+    }
+
+    .connection-status {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      color: #64748b;
+      font-size: 12px;
+      background: rgba(15, 23, 42, 0.8);
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: #22c55e;
+      border-radius: 50%;
+      margin-right: 6px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div id="file-display">
+    <div class="typing-indicator"></div>
+    <div class="file-header">
+      <div class="language-icon" id="lang-icon">TS</div>
+      <div class="file-info">
+        <div class="filename" id="filename">server.ts</div>
+        <div class="filepath" id="filepath">/path/to/file.ts</div>
+      </div>
+    </div>
+    <div class="file-stats">
+      <div class="stat">
+        <span class="stat-label">Lines</span>
+        <span class="stat-value" id="line-count">0</span>
+      </div>
+      <div class="stat cursor-position">
+        <span class="stat-label">Ln</span>
+        <span class="stat-value" id="cursor-line">1</span>
+        <span class="stat-label">Col</span>
+        <span class="stat-value" id="cursor-col">1</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="connection-status">
+    <span class="status-dot"></span>
+    Connected to Forge Studio
+  </div>
+
+  <script>
+    // Connect to Socket.io server (use current host, not hardcoded localhost)
+    const socket = io();
+    const fileDisplay = document.getElementById('file-display');
+    const typingIndicator = document.querySelector('.typing-indicator');
+    let typingTimeout = null;
+
+    // Language icon mappings
+    const languageIcons = {
+      'typescript': 'TS',
+      'typescriptreact': 'TSX',
+      'javascript': 'JS',
+      'javascriptreact': 'JSX',
+      'python': 'PY',
+      'rust': 'RS',
+      'go': 'GO',
+      'java': 'JAVA',
+      'c': 'C',
+      'cpp': 'C++',
+      'html': 'HTML',
+      'css': 'CSS',
+      'json': 'JSON',
+      'markdown': 'MD',
+      'yaml': 'YML',
+      'shell': 'SH',
+      'sql': 'SQL',
+      'text': 'TXT'
+    };
+
+    // Language colors
+    const languageColors = {
+      'typescript': 'rgba(59, 130, 246, 0.3)',
+      'javascript': 'rgba(234, 179, 8, 0.3)',
+      'python': 'rgba(59, 130, 246, 0.3)',
+      'rust': 'rgba(239, 68, 68, 0.3)',
+      'go': 'rgba(34, 197, 94, 0.3)',
+      'html': 'rgba(249, 115, 22, 0.3)',
+      'css': 'rgba(59, 130, 246, 0.3)',
+      'markdown': 'rgba(148, 163, 184, 0.3)'
+    };
+
+    // Handle file update event
+    socket.on('file_update', (data) => {
+      console.log('File update received:', data);
+
+      // Update filename
+      document.getElementById('filename').textContent = data.filename;
+      document.getElementById('filepath').textContent = data.path;
+
+      // Update language icon
+      const langIcon = languageIcons[data.language] || 'FILE';
+      document.getElementById('lang-icon').textContent = langIcon;
+
+      // Update icon background color
+      const iconEl = document.getElementById('lang-icon');
+      const color = languageColors[data.language] || 'rgba(59, 130, 246, 0.2)';
+      iconEl.style.background = `linear-gradient(135deg, ${color}, rgba(147, 51, 234, 0.2))`;
+
+      // Update stats
+      document.getElementById('line-count').textContent = data.lineCount;
+      document.getElementById('cursor-line').textContent = data.cursorLine;
+      document.getElementById('cursor-col').textContent = data.cursorColumn;
+
+      // Show display
+      fileDisplay.classList.add('visible');
+    });
+
+    // Handle typing events
+    socket.on('typing', (data) => {
+      console.log('Typing detected:', data);
+
+      // Show typing indicator
+      typingIndicator.classList.add('active');
+
+      // Clear existing timeout
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+
+      // Hide after 1 second of no typing
+      typingTimeout = setTimeout(() => {
+        typingIndicator.classList.remove('active');
+      }, 1000);
+    });
+
+    // Handle cursor movement (optional - for real-time updates)
+    socket.on('cursor_moved', (data) => {
+      if (data.line && data.column) {
+        document.getElementById('cursor-line').textContent = data.line;
+        document.getElementById('cursor-col').textContent = data.column;
+      }
+    });
+
+    // Handle connection events
+    socket.on('connect', () => {
+      console.log('Connected to Socket.io server');
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from Socket.io server');
+      fileDisplay.classList.remove('visible');
+    });
+
+    // Identify this client
+    socket.emit('identify', { type: 'current-file-overlay', name: 'Current File Overlay' });
+
+    console.log('Current File Overlay loaded and listening for events...');
+  </script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Calls</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            background: transparent;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        .tool-calls-container {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .tool-badge {
+            background: rgba(20, 20, 30, 0.95);
+            border-left: 4px solid #00ff88;
+            padding: 12px 15px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            animation: slideInLeft 0.3s ease-out;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .tool-badge.fading {
+            opacity: 0;
+        }
+
+        .tool-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #00ff88, #00d4ff);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: #000;
+            flex-shrink: 0;
+        }
+
+        .tool-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tool-name {
+            color: #00ff88;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tool-params {
+            color: #b0b0b0;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tool-timestamp {
+            color: #666;
+            font-size: 10px;
+            font-family: 'Courier New', monospace;
+            margin-top: 4px;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Connection status indicator */
+        .connection-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background: rgba(20, 20, 30, 0.8);
+            border-radius: 3px;
+            font-size: 11px;
+            color: #888;
+        }
+
+        .connection-status.connected {
+            color: #00ff88;
+        }
+
+        .connection-status.disconnected {
+            color: #ff4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="status">Connecting...</div>
+    <div class="tool-calls-container" id="tool-calls-container"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io(); // Connect to the server that served this page
+        const container = document.getElementById('tool-calls-container');
+        const status = document.getElementById('status');
+        const maxBadges = 10;
+        const fadeDelay = 3000; // 3 seconds before fade
+        const removeDelay = 500; // 0.5 seconds fade animation
+
+        socket.on('connect', () => {
+            console.log('Tool calls overlay connected');
+            status.textContent = 'Connected';
+            status.className = 'connection-status connected';
+            socket.emit('identify', {
+                type: 'tool-calls-overlay',
+                name: 'Tool Calls Overlay'
+            });
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Tool calls overlay disconnected');
+            status.textContent = 'Disconnected';
+            status.className = 'connection-status disconnected';
+        });
+
+        socket.on('tool_call', (data) => {
+            console.log('Tool call received:', data);
+            addToolBadge(data);
+        });
+
+        function addToolBadge(data) {
+            const badge = document.createElement('div');
+            badge.className = 'tool-badge';
+
+            const timestamp = new Date(data.timestamp || Date.now()).toLocaleTimeString();
+            const toolIcon = getToolIcon(data.toolName);
+            const params = formatParams(data.params);
+
+            badge.innerHTML = `
+                <div class="tool-icon">${toolIcon}</div>
+                <div class="tool-content">
+                    <div class="tool-name">${escapeHtml(data.toolName)}</div>
+                    <div class="tool-params">${params}</div>
+                    <div class="tool-timestamp">${timestamp}</div>
+                </div>
+            `;
+
+            container.insertBefore(badge, container.firstChild);
+
+            // Limit number of badges
+            while (container.children.length > maxBadges) {
+                container.removeChild(container.lastChild);
+            }
+
+            // Start fade-out timer
+            setTimeout(() => {
+                badge.classList.add('fading');
+
+                // Remove after fade animation completes
+                setTimeout(() => {
+                    if (badge.parentNode === container) {
+                        container.removeChild(badge);
+                    }
+                }, removeDelay);
+            }, fadeDelay);
+        }
+
+        function getToolIcon(toolName) {
+            // Return emoji/icon based on tool name
+            const icons = {
+                'Read': '📖',
+                'Write': '✏️',
+                'Edit': '📝',
+                'Bash': '💻',
+                'Grep': '🔍',
+                'Glob': '🗂️',
+                'WebFetch': '🌐',
+                'WebSearch': '🔎',
+                'Task': '🤖',
+                'context_search': '🧠',
+                'context_store': '💾',
+                'decision_record': '📋',
+                'task_create': '✅'
+            };
+
+            return icons[toolName] || '🔧';
+        }
+
+        function formatParams(params) {
+            if (!params || Object.keys(params).length === 0) {
+                return '(no params)';
+            }
+
+            // Get first few params for display
+            const keys = Object.keys(params).slice(0, 2);
+            const preview = keys.map(key => {
+                let value = params[key];
+
+                // Truncate long values
+                if (typeof value === 'string' && value.length > 30) {
+                    value = value.substring(0, 27) + '...';
+                } else if (typeof value === 'object') {
+                    value = '{...}';
+                }
+
+                return `${key}: ${value}`;
+            }).join(', ');
+
+            const remaining = Object.keys(params).length - keys.length;
+            return remaining > 0 ? `${preview}, +${remaining} more` : preview;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Test badge on connect (remove this in production)
+        socket.on('connect', () => {
+            setTimeout(() => {
+                addToolBadge({
+                    toolName: 'Read',
+                    params: { file_path: '/home/user/example.ts', limit: 100 },
+                    timestamp: new Date().toISOString()
+                });
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

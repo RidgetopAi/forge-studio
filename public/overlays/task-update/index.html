@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1920, height=1080">
+  <title>Task Update - Forge Studio</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 1920px;
+      height: 1080px;
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', 'Droid Sans Mono', monospace;
+      background: transparent;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .notification-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.3s ease-in-out;
+    }
+
+    .notification-container.visible {
+      display: block;
+      opacity: 1;
+    }
+
+    .notification-container.fade-out {
+      opacity: 0;
+    }
+
+    .notification {
+      background: rgba(20, 20, 30, 0.95);
+      border-radius: 12px;
+      border: 2px solid;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(10px);
+    }
+
+    /* Status-specific border colors */
+    .notification.todo {
+      border-color: #3b82f6; /* Blue */
+    }
+
+    .notification.in_progress {
+      border-color: #f59e0b; /* Orange */
+    }
+
+    .notification.completed {
+      border-color: #10b981; /* Green */
+    }
+
+    .notification.blocked {
+      border-color: #ef4444; /* Red */
+    }
+
+    .notification.cancelled {
+      border-color: #6b7280; /* Gray */
+    }
+
+    .notification-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .notification-icon {
+      font-size: 28px;
+      margin-right: 12px;
+    }
+
+    .notification-title-area {
+      display: flex;
+      align-items: center;
+      flex: 1;
+    }
+
+    .notification-type {
+      font-size: 18px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .status-badge {
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Status badge colors */
+    .status-badge.todo {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+      border: 1px solid #3b82f6;
+    }
+
+    .status-badge.in_progress {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+      border: 1px solid #f59e0b;
+    }
+
+    .status-badge.completed {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border: 1px solid #10b981;
+    }
+
+    .status-badge.blocked {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid #ef4444;
+    }
+
+    .status-badge.cancelled {
+      background: rgba(107, 114, 128, 0.2);
+      color: #6b7280;
+      border: 1px solid #6b7280;
+    }
+
+    .task-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 16px;
+      line-height: 1.4;
+    }
+
+    .task-metadata {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .metadata-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metadata-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    .metadata-value {
+      font-size: 15px;
+      font-weight: 500;
+      color: #ffffff;
+    }
+
+    .priority-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: capitalize;
+    }
+
+    .priority-badge.urgent {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid #ef4444;
+    }
+
+    .priority-badge.high {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+      border: 1px solid #f59e0b;
+    }
+
+    .priority-badge.medium {
+      background: rgba(59, 130, 246, 0.2);
+      color: #3b82f6;
+      border: 1px solid #3b82f6;
+    }
+
+    .priority-badge.low {
+      background: rgba(107, 114, 128, 0.2);
+      color: #6b7280;
+      border: 1px solid #6b7280;
+    }
+
+    .task-type {
+      text-transform: capitalize;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.4);
+      text-align: right;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    /* Animation for new tasks */
+    @keyframes slideInBounce {
+      0% {
+        transform: translate(-50%, -60%);
+        opacity: 0;
+      }
+      60% {
+        transform: translate(-50%, -48%);
+      }
+      100% {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+      }
+    }
+
+    .notification-container.animate-in {
+      animation: slideInBounce 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+  </style>
+</head>
+<body>
+  <div id="notification-container" class="notification-container">
+    <div id="notification" class="notification">
+      <div class="notification-header">
+        <div class="notification-title-area">
+          <span class="notification-icon" id="icon">✓</span>
+          <span class="notification-type" id="action">Task Created</span>
+        </div>
+        <div class="status-badge" id="status-badge">TODO</div>
+      </div>
+
+      <div class="task-title" id="task-title">
+        Loading task...
+      </div>
+
+      <div class="task-metadata">
+        <div class="metadata-item">
+          <div class="metadata-label">Type</div>
+          <div class="metadata-value task-type" id="task-type">feature</div>
+        </div>
+        <div class="metadata-item">
+          <div class="metadata-label">Priority</div>
+          <div class="metadata-value">
+            <span class="priority-badge" id="priority-badge">medium</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="timestamp" id="timestamp">
+        Just now
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io(); // Connect to the server that served this page
+
+    let currentTimeout = null;
+    const DISPLAY_DURATION = 3000; // 3 seconds
+    const FADE_DURATION = 300; // 0.3 seconds
+
+    // Status display names and icons
+    const statusConfig = {
+      'todo': { text: 'To Do', icon: '○' },
+      'in_progress': { text: 'In Progress', icon: '◐' },
+      'completed': { text: 'Completed', icon: '●' },
+      'blocked': { text: 'Blocked', icon: '⊗' },
+      'cancelled': { text: 'Cancelled', icon: '⊘' }
+    };
+
+    function formatTimestamp(timestamp) {
+      const date = new Date(timestamp);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffSecs = Math.floor(diffMs / 1000);
+      const diffMins = Math.floor(diffSecs / 60);
+
+      if (diffSecs < 10) return 'Just now';
+      if (diffSecs < 60) return `${diffSecs} seconds ago`;
+      if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    function showNotification(event, isUpdate = false) {
+      const container = document.getElementById('notification-container');
+      const notification = document.getElementById('notification');
+      const icon = document.getElementById('icon');
+      const action = document.getElementById('action');
+      const statusBadge = document.getElementById('status-badge');
+      const taskTitle = document.getElementById('task-title');
+      const taskType = document.getElementById('task-type');
+      const priorityBadge = document.getElementById('priority-badge');
+      const timestamp = document.getElementById('timestamp');
+
+      // Clear any existing timeout
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
+      }
+
+      // Determine status for styling
+      const status = event.status || 'todo';
+      const statusInfo = statusConfig[status] || statusConfig['todo'];
+
+      // Update action text and icon based on event type
+      if (isUpdate) {
+        action.textContent = 'Task Updated';
+        icon.textContent = statusInfo.icon;
+      } else {
+        action.textContent = 'Task Created';
+        icon.textContent = '✨';
+      }
+
+      // Update status badge
+      statusBadge.textContent = statusInfo.text;
+      statusBadge.className = 'status-badge ' + status;
+
+      // Update notification border color
+      notification.className = 'notification ' + status;
+
+      // Update task title
+      taskTitle.textContent = event.title || 'Untitled Task';
+
+      // Update task type
+      taskType.textContent = event.taskType || 'feature';
+
+      // Update priority badge
+      const priority = event.priority || 'medium';
+      priorityBadge.textContent = priority;
+      priorityBadge.className = 'priority-badge ' + priority;
+
+      // Update timestamp
+      timestamp.textContent = formatTimestamp(event.timestamp);
+
+      // Show notification
+      container.classList.remove('fade-out');
+      container.classList.add('visible', 'animate-in');
+
+      // Auto-hide after duration
+      currentTimeout = setTimeout(() => {
+        hideNotification();
+      }, DISPLAY_DURATION);
+    }
+
+    function hideNotification() {
+      const container = document.getElementById('notification-container');
+      container.classList.add('fade-out');
+      container.classList.remove('animate-in');
+
+      setTimeout(() => {
+        container.classList.remove('visible', 'fade-out');
+      }, FADE_DURATION);
+    }
+
+    // Listen for task created events
+    socket.on('task_created', (event) => {
+      console.log('Task created event received:', event);
+      showNotification(event, false);
+    });
+
+    // Listen for task updated events
+    socket.on('task_updated', (event) => {
+      console.log('Task updated event received:', event);
+      showNotification(event, true);
+    });
+
+    // Connection monitoring
+    socket.on('connect', () => {
+      console.log('Connected to Forge Studio server');
+      socket.emit('identify', {
+        type: 'task-update-overlay',
+        name: 'Task Update Overlay'
+      });
+    });
+
+    socket.on('disconnect', () => {
+      console.log('Disconnected from server');
+    });
+
+    socket.on('connect_error', (error) => {
+      console.error('Connection error:', error);
+    });
+  </script>
+</body>
+</html>

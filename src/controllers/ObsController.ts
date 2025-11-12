@@ -170,4 +170,69 @@ export class ObsController extends EventEmitter {
   connected(): boolean {
     return this.isConnected;
   }
+
+  /**
+   * Get scene item ID by source name
+   */
+  async getSceneItemId(sceneName: string, sourceName: string): Promise<number> {
+    try {
+      const response = await this.obs.call('GetSceneItemId', {
+        sceneName,
+        sourceName,
+      });
+      return response.sceneItemId;
+    } catch (error) {
+      logger.error(`Failed to get scene item ID for ${sourceName} in ${sceneName}: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Set scene item transform (scale, position, rotation, etc.)
+   */
+  async setSceneItemTransform(
+    sceneName: string,
+    sceneItemId: number,
+    transform: {
+      scaleX?: number;
+      scaleY?: number;
+      positionX?: number;
+      positionY?: number;
+      rotation?: number;
+      cropTop?: number;
+      cropBottom?: number;
+      cropLeft?: number;
+      cropRight?: number;
+    }
+  ): Promise<void> {
+    try {
+      await this.obs.call('SetSceneItemTransform', {
+        sceneName,
+        sceneItemId,
+        sceneItemTransform: transform,
+      });
+    } catch (error) {
+      logger.error(`Failed to set scene item transform: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Get scene item transform
+   */
+  async getSceneItemTransform(
+    sceneName: string,
+    sceneItemId: number
+  ): Promise<any> {
+    try {
+      const response = await this.obs.call('GetSceneItemTransform', {
+        sceneName,
+        sceneItemId,
+      });
+      return response.sceneItemTransform;
+    } catch (error) {
+      logger.error(`Failed to get scene item transform: ${error}`);
+      throw error;
+    }
+  }
 }
