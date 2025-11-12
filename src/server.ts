@@ -13,6 +13,9 @@ import { SocketManager } from './controllers/SocketManager.js';
 import { StateManager } from './state/StateManager.js';
 import { SpindlesMonitor } from './monitors/SpindlesMonitor.js';
 import { GitMonitor } from './monitors/GitMonitor.js';
+import { TerminalMonitor } from './monitors/TerminalMonitor.js';
+import { NeovimMonitor } from './monitors/NeovimMonitor.js';
+import { SceneDirector } from './cinematography/SceneDirector.js';
 
 class ForgeStudioServer {
   private app: express.Application;
@@ -22,6 +25,9 @@ class ForgeStudioServer {
   private stateManager: StateManager;
   private spindlesMonitor: SpindlesMonitor;
   private gitMonitor: GitMonitor;
+  private terminalMonitor: TerminalMonitor;
+  private neovimMonitor: NeovimMonitor;
+  private sceneDirector: SceneDirector;
 
   constructor() {
     this.app = express();
@@ -31,6 +37,13 @@ class ForgeStudioServer {
     this.socketManager = new SocketManager(this.httpServer);
     this.spindlesMonitor = new SpindlesMonitor();
     this.gitMonitor = new GitMonitor();
+    this.terminalMonitor = new TerminalMonitor();
+    this.neovimMonitor = new NeovimMonitor();
+    this.sceneDirector = new SceneDirector(this.obsController, this.socketManager, {
+      sceneSwitchCooldown: 5000,
+      idleThreshold: 10000,
+      automationEnabled: false  // Start disabled
+    });
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -38,6 +51,9 @@ class ForgeStudioServer {
     this.setupStateSync();
     this.setupSpindlesEvents();
     this.setupGitEvents();
+    this.setupTerminalEvents();
+    this.setupNeovimEvents();
+    this.setupSceneDirectorEvents();
   }
 
   /**
@@ -206,6 +222,33 @@ class ForgeStudioServer {
       return res.json({ success: true, commit: testCommit });
     });
 
+    // Scene Director API endpoints
+    this.app.get('/api/scene-director/status', (_req, res) => {
+      res.json(this.sceneDirector.getStatus());
+    });
+
+    this.app.post('/api/scene-director/automation', (req, res) => {
+      const { enabled } = req.body;
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'enabled must be a boolean' });
+      }
+      this.sceneDirector.setAutomation(enabled);
+      return res.json({ success: true, enabled });
+    });
+
+    this.app.post('/api/scene-director/scene', async (req, res) => {
+      const { sceneName } = req.body;
+      if (typeof sceneName !== 'string') {
+        return res.status(400).json({ error: 'sceneName must be a string' });
+      }
+      try {
+        await this.sceneDirector.manualSwitchScene(sceneName);
+        return res.json({ success: true, sceneName });
+      } catch (error) {
+        return res.status(500).json({ error: `Failed to switch scene: ${error}` });
+      }
+    });
+
     // 404 handler
     this.app.use((_req, res) => {
       res.status(404).json({ error: 'Not found' });
@@ -308,6 +351,67 @@ class ForgeStudioServer {
   }
 
   /**
+   * Setup terminal event handlers
+   */
+  private setupTerminalEvents(): void {
+    // When error detected in terminal, broadcast to overlays
+    this.terminalMonitor.on('error_detected', (error) => {
+      logger.warn(`Terminal error detected: ${error.type}`);
+      this.socketManager.broadcastTerminalError(error);
+      this.sceneDirector.handleError(error);
+    });
+
+    logger.info('Terminal monitor configured');
+  }
+
+  /**
+   * Setup Neovim event handlers
+   */
+  private setupNeovimEvents(): void {
+    // When typing detected, notify SceneDirector with cursor position
+    this.neovimMonitor.on('typing', (event) => {
+      logger.debug('Typing detected in Neovim');
+      // Extract cursor position if available
+      const cursorX = event.cursorColumn;
+      const cursorY = event.cursorLine;
+      this.sceneDirector.handleTyping(cursorX, cursorY);
+    });
+
+    // When file updated, broadcast to overlays
+    this.neovimMonitor.on('file_update', (event) => {
+      logger.info(`File updated: ${event.filename}`);
+      this.socketManager.broadcastFileUpdate(event);
+    });
+
+    logger.info('Neovim monitor configured');
+  }
+
+  /**
+   * Setup Scene Director event handlers
+   */
+  private setupSceneDirectorEvents(): void {
+    // Wire monitor events to SceneDirector
+    this.terminalMonitor.on('error_detected', (error) => {
+      this.sceneDirector.handleError(error);
+    });
+
+    this.gitMonitor.on('commit', (commit) => {
+      this.sceneDirector.handleCommit(commit);
+    });
+
+    this.spindlesMonitor.on('thinking_block', () => {
+      this.sceneDirector.handleThinkingBlocks();
+    });
+
+    // Broadcast SceneDirector status updates
+    this.sceneDirector.on('status_update', (status) => {
+      this.socketManager.broadcastSceneDirectorStatus(status);
+    });
+
+    logger.info('Scene Director configured');
+  }
+
+  /**
    * Start the server
    */
   async start(): Promise<void> {
@@ -324,6 +428,9 @@ class ForgeStudioServer {
 
       // Start GitMonitor
       await this.gitMonitor.start();
+
+      // Start Scene Director
+      this.sceneDirector.start();
 
       // Start HTTP server
       this.httpServer.listen(config.server.port, () => {

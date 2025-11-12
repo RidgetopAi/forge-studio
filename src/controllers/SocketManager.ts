@@ -156,4 +156,32 @@ export class SocketManager {
     this.io.emit('git_commit', event);
     logger.info(`🔀 Broadcast complete`);
   }
+
+  /**
+   * Broadcast terminal error to all clients
+   */
+  broadcastTerminalError(event: any): void {
+    logger.warn(`⚠️  BROADCASTING terminal_error to ${this.connectedClients.size} clients`);
+    logger.warn(`⚠️  Error type: ${event.type}, severity: ${event.severity}`);
+    this.io.emit('terminal_error', event);
+    logger.info(`⚠️  Broadcast complete`);
+  }
+
+  /**
+   * Broadcast file update from Neovim to all clients
+   */
+  broadcastFileUpdate(event: any): void {
+    logger.info(`📝 BROADCASTING file_update to ${this.connectedClients.size} clients`);
+    logger.info(`📝 File: ${event.filename} (${event.lineCount} lines)`);
+    this.io.emit('file_update', event);
+    logger.info(`📝 Broadcast complete`);
+  }
+
+  /**
+   * Broadcast Scene Director status to all clients
+   */
+  broadcastSceneDirectorStatus(status: any): void {
+    logger.debug(`🎬 BROADCASTING scene_director_status to ${this.connectedClients.size} clients`);
+    this.io.emit('scene_director_status', status);
+  }
 }
